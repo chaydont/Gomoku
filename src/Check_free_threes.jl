@@ -42,7 +42,7 @@ end
 
 function find_double_threes(board::Array{Tile, 2}, color::Tile)
     result = Cell[]
-    for cell in each_empty_cell()
+    for cell in each_empty_cell(board)
         if is_double_three(board, color, cell)
             push!(result, cell)
         end
