@@ -36,25 +36,23 @@ function play()
         display_board(board, captured..., time...)
         if ((prev & SDL.BUTTON_LEFT) == 0) && (mouseKeys & SDL.BUTTON_LEFT) > 0
             forbiddens = find_double_threes(board, color)
-            for cell in forbiddens
-                board[cell] = Forbidden
+            @info forbiddens
+            for empty_cell in forbiddens
+                board[empty_cell] = Forbidden
             end
             if board[cell] == Empty
-                for cell in forbiddens
-                    board[cell] = Empty
+                for empty_cell in forbiddens
+                    board[empty_cell] = Empty
                 end
                 board[cell] = color
                 captured[Int(color)] += check_capture(board, cell, color)
-                forbiddens = find_double_threes(board, enemy(color))
-                for cell in forbiddens
-                    board[cell] = Forbidden
-                end
-                is_win(board, color, 0) && break
-                for cell in forbiddens
-                    board[cell] = Empty
-                end
+                is_win(board, color, captured) && break
                 time[Int(color)] = Millisecond(0)
                 color = enemy(color)
+            else
+                for empty_cell in forbiddens
+                    board[empty_cell] = Empty
+                end
             end
         end
         prev = mouseKeys

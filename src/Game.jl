@@ -86,6 +86,7 @@ function check_can_be_capture(board, cell, color)
             (board[cell - 2dir] == Empty &&
             board[cell - dir] == color &&
             board[cell + dir] == enemy(color))
+            @info cell
             return true
         end
     end
@@ -110,6 +111,7 @@ function find_winning_lines(board, cell, dir, color)
         push!(lines, line[length(line) - 4:end])
         pop!(line)
     end
+    @info lines
     return lines
 end
 
@@ -117,6 +119,7 @@ function check_winning_line(board, line, color)
     for win_cell in line
         check_can_be_capture(board, win_cell, color) && return true
     end
+    @info "false"
     return false
 end
 
@@ -128,7 +131,6 @@ function check_line_capture(board, cell, color)
             for line in find_winning_lines(board, cell, dir, color)
                 check_winning_line(board, line, color) && return true
             end
-            return true
         end
     end
     return no_winning_line
@@ -144,11 +146,21 @@ function check_win_by_captures(board, color)
 end
 
 function is_win(board, color, nb_capture)
+    forbiddens = find_double_threes(board, enemy(color))
+    for forbidden_cell in forbiddens
+        board[forbidden_cell] = Forbidden
+    end
+    if nb_capture[Int(color)] >= 10
+        return true
+    end
     for cell in each_cell()
         if board[cell] == color && !check_line_capture(board, cell, color) &&
-            !(nb_capture == 4 && check_win_by_captures(board, color))
+            !(nb_capture[Int(enemy(color))] == 8 && check_win_by_captures(board, color))
             return true
         end
+    end
+    for forbidden_cell in forbiddens
+        board[forbidden_cell] = Empty
     end
     return false
 end
