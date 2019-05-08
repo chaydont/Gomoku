@@ -1,4 +1,4 @@
-@enum Tile White Black Empty Forbidden Outside
+@enum Tile Empty White Black Forbidden Outside
 
 struct Cell
     x::Integer
@@ -35,7 +35,7 @@ function each_cell()
     end
 end
 
-function each_empty_cell(board)
+function each_empty_cell(board::Array{Tile})
     Channel(ctype=Cell) do chnl
         for cell in each_cell
             if board[cell] == Empty
@@ -66,12 +66,15 @@ const EACH_DIR = Cell[Cell(i, j) for i in -1:1 for j in -1:1 if !(i == j == 0)]
 const HALF_DIR = EACH_DIR[5:end]
 
 function check_capture(board, cell, color)
+    result = 0
     for dir in EACH_DIR
         if board[cell+dir] == enemy(color) && board[cell+2dir] == enemy(color) && board[cell+3dir] == color
             board[cell+dir] = Empty
             board[cell+2dir] = Empty
+            result += 2
         end
     end
+    return result
 end
 
 function chech_can_be_capture(board, cell, color)
@@ -85,11 +88,13 @@ function chech_can_be_capture(board, cell, color)
  end
  
  function is_win(board, cell, color)
-    for dir in each_dir(half=true)
+    for dir in HALF_DIR
         if find_length(board, cell, dir, color) >= 5
             for win_cell in find_line_cells(board, cell, dir, color)
                 checK_can_be_capture(board, win_cell, color) && return false
             end
+            return true
         end
     end
+    false
  end

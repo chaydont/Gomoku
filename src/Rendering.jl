@@ -1,39 +1,95 @@
 using SimpleDirectMediaLayer
+using Dates
+
 const SDL = SimpleDirectMediaLayer
 
-const WINDOW_SIZE = 750
-const TILE_SIZE = Int(floor(WINDOW_SIZE / 19))
+const BOARD_SIZE = 750
+const MENU_SIZE = 250
+const TILE_SIZE = Int(floor(BOARD_SIZE / 19))
 const STONE_SIZE = Int(floor(TILE_SIZE * 0.9))
-const OFFSET = Int(floor(WINDOW_SIZE / 125))
+const OFFSET = Int(floor(BOARD_SIZE / 125))
+
+const MENU_COLOR = (220, 179, 92, 255)
+const TIMER_COLOR = (64, 64, 64, 255)
+const OUTSIDE_COLOR = (128, 128, 128, 255)
+const NUMBERS_COLOR = (193, 53, 59, 255)
 
 SDL.Init(SDL.INIT_VIDEO)
 
-window = SDL.CreateWindow("Gomoku", Int32(0), Int32(0), Int32(WINDOW_SIZE), Int32(WINDOW_SIZE), SDL.WINDOW_SHOWN)
+window = SDL.CreateWindow("Gomoku", Int32(0), Int32(0), Int32(BOARD_SIZE + MENU_SIZE), Int32(BOARD_SIZE), SDL.WINDOW_SHOWN)
 renderer = SDL.CreateRenderer(window, Int32(-1), SDL.RENDERER_ACCELERATED | SDL.RENDERER_PRESENTVSYNC)
 
-board_texture = SDL.CreateTextureFromSurface(renderer, SDL.LoadBMP("resources/board.bmp"))
-black_texture = SDL.CreateTextureFromSurface(renderer, SDL.LoadBMP("resources/black.bmp"))
-white_texture = SDL.CreateTextureFromSurface(renderer, SDL.LoadBMP("resources/white.bmp"))
+board_texture =   SDL.CreateTextureFromSurface(renderer, SDL.LoadBMP("resources/board.bmp"))
+black_texture =   SDL.CreateTextureFromSurface(renderer, SDL.LoadBMP("resources/black.bmp"))
+white_texture =   SDL.CreateTextureFromSurface(renderer, SDL.LoadBMP("resources/white.bmp"))
+numbers_texture = SDL.CreateTextureFromSurface(renderer, SDL.LoadBMP("resources/numbers.bmp"))
 
 function create_background()
-    dir = SDL.Rect(0, 0, WINDOW_SIZE, WINDOW_SIZE)
+    SDL.SetRenderDrawColor(renderer, MENU_COLOR...)
+    SDL.RenderFillRect(renderer, Ref(SDL.Rect(BOARD_SIZE, 0, MENU_SIZE, BOARD_SIZE)))
+
+    dir = SDL.Rect(0, 0, BOARD_SIZE, BOARD_SIZE)
     src = SDL.Rect(0, 0, 2000, 2000)
     SDL.RenderCopy(renderer, board_texture, Ref(src), Ref(dir))
+end
+
+function place(x, y, piece)
+    dir = SDL.Rect(x, y, STONE_SIZE, STONE_SIZE)
+    src = SDL.Rect(0, 0, 384, 384)
+    SDL.RenderCopy(renderer, piece == Black ? black_texture : white_texture, Ref(src), Ref(dir))
 end
 
 function place_pieces(board::AbstractArray{Tile, 2})
     for cell in each_cell()
         piece = board[cell]
         if piece in (Black, White)
-            dir = SDL.Rect((cell.x - 1) * TILE_SIZE + OFFSET, (cell.y - 1) * TILE_SIZE + OFFSET, STONE_SIZE, STONE_SIZE)
-            src = SDL.Rect(0, 0, 384, 384)
-            SDL.RenderCopy(renderer, piece == Black ? black_texture : white_texture, Ref(src), Ref(dir))
+            place((cell.x - 1) * TILE_SIZE + OFFSET, (cell.y - 1) * TILE_SIZE + OFFSET, piece)
         end
     end
 end
 
-function display_board(board::AbstractArray{Tile, 2})
+function write_number(number::Integer, place::Integer, player::Tile)
+    offset = place * 35 + (place > 1 ? 11 : 0)
+    dir = SDL.Rect(BOARD_SIZE + 37 + offset, 57 + (player==Black ? BOARD_SIZE / 2 : 0), 43, 61)
+    src = SDL.Rect(Int(floor(62.3 * number)), 0, 62, 88)
+    SDL.RenderCopy(renderer, numbers_texture, Ref(src), Ref(dir))
+end
+
+function display_time(time::Period, player::Tile)
+    write_number(div(time.value, 10000) % 10, 0, player)
+    write_number(div(time.value, 1000) % 10, 1, player)
+    SDL.SetRenderDrawColor(renderer, NUMBERS_COLOR...)
+
+    SDL.RenderFillRect(renderer, Ref(SDL.Rect(BOARD_SIZE + 114, 79 + (player==Black ? BOARD_SIZE / 2 : 0), 7, 7)))
+    SDL.RenderFillRect(renderer, Ref(SDL.Rect(BOARD_SIZE + 114, 95 + (player==Black ? BOARD_SIZE / 2 : 0), 7, 7)))
+
+    centi = div(Int(floor(Millisecond(time).value)), 10)
+    write_number(div(time.value, 100) % 10, 2, player)
+    write_number(div(time.value, 10) % 10, 3, player)
+end
+
+function display_timer(time::Period, player::Tile)
+    SDL.SetRenderDrawColor(renderer, OUTSIDE_COLOR...)
+    SDL.RenderFillRect(renderer, Ref(SDL.Rect(BOARD_SIZE + 30, 50 + (player==Black ? BOARD_SIZE / 2 : 0), 175, 75)))
+
+    SDL.SetRenderDrawColor(renderer, TIMER_COLOR...)
+    SDL.RenderFillRect(renderer, Ref(SDL.Rect(BOARD_SIZE + 37, 57 + (player==Black ? BOARD_SIZE / 2 : 0), 161, 61)))
+
+    display_time(time, player)
+end
+
+function display_captured(number::Integer, player::Tile)
+    for i in 15:15:(15 * number)
+        place(BOARD_SIZE + 20 + i, 150 + (player==White ? BOARD_SIZE / 2 : 0), player)
+    end
+end
+
+function display_board(board::AbstractArray{Tile, 2}, white_captured, black_captured, white_time, black_time)
     create_background()
+    display_timer(Period(white_time), Black)
+    display_timer(Period(black_time), White)
+    display_captured(black_captured, White)
+    display_captured(white_captured, Black)
     place_pieces(board)
     SDL.RenderPresent(renderer)
 end
