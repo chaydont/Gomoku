@@ -13,7 +13,7 @@ function is_any_three(board::Array{Tile, 2}, color::Tile, cell::Cell, dir::Cell)
     count = 0
     free_threes = [[Empty White White Empty White Empty], [Empty White White White Empty]]
     for free_three in free_threes
-        if (board[cell] != Outside && board[cell + dir * length(free_three) - 1)] != Outside
+        if board[cell] != Outside && board[cell + dir * (length(free_three) - 1)] != Outside
             if is_three(board, color, cell, dir, free_three)
                 count += 1
             end
@@ -41,11 +41,5 @@ function is_double_three(board::Array{Tile, 2}, color::Tile, cell::Cell)
 end
 
 function find_double_threes(board::Array{Tile, 2}, color::Tile)
-    result = Cell[]
-    for cell in each_empty_cell()
-        if is_double_three(board, color, cell)
-            push!(result, cell)
-        end
-    end
-    return result
+    [cell for cell in each_empty_cell(board) if is_double_three(board, color, cell)]
 end

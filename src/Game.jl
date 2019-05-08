@@ -35,6 +35,16 @@ function each_cell()
     end
 end
 
+function each_empty_cell(board)
+    Channel(ctype=Cell) do chnl
+        for cell in each_cell
+            if board[cell] == Empty
+                put!(chnl, cell)
+            end
+        end
+    end
+end
+
 enemy(color::Tile) = color == Black ? White : Black
 
 function find_length(board, current::Cell, dir::Cell, color)
@@ -52,10 +62,11 @@ function find_length(board, current::Cell, dir::Cell, color)
     length
 end
 
-each_dir(; half=false) = [Cell(i, j) for i in -1:1 for j in -1:1 if !(i == j == 0) && (!half || i + j <= 0)]
+const EACH_DIR = Cell[Cell(i, j) for i in -1:1 for j in -1:1 if !(i == j == 0)]
+const HALF_DIR = EACH_DIR[5:end]
 
 function check_capture(board, cell, color)
-    for dir in each_dir()
+    for dir in EACH_DIR
         if board[cell+dir] == enemy(color) && board[cell+2dir] == enemy(color) && board[cell+3dir] == color
             board[cell+dir] = Empty
             board[cell+2dir] = Empty
@@ -63,9 +74,22 @@ function check_capture(board, cell, color)
     end
 end
 
-function has_5_aligned(board, cell, color)
-    for i in each_dir(half=true)
-        find_length(board, cell, i, color) >= 5 && return true
+function chech_can_be_capture(board, cell, color)
+    for dir in EACH_DIR
+        if board[cell - dir] == Empty &&
+        board[cell + dir] == color &&
+        board[cell + 2dir] == enemy(color)
+            return true
+        end
     end
-    false
-end
+ end
+ 
+ function is_win(board, cell, color)
+    for dir in each_dir(half=true)
+        if find_length(board, cell, dir, color) >= 5
+            for win_cell in find_line_cells(board, cell, dir, color)
+                checK_can_be_capture(board, win_cell, color) && return false
+            end
+        end
+    end
+ end
