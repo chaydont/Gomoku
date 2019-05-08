@@ -40,7 +40,7 @@ function play()
             check_all_free_threes(board, color)
             if board[cell] == Empty
                 board[cell] = color
-                has_5_aligned(board, cell, color) && break
+                is_win(board, cell, color) && break
                 check_capture(board, cell, color)
                 color = enemy(color)
             end
