@@ -24,6 +24,7 @@ import Base.*
 +(a::Cell, b::Cell)    = Cell(a.x + b.x, a.y + b.y)
 -(a::Cell, b::Cell)    = Cell(a.x - b.x, a.y - b.y)
 *(a::Integer, b::Cell) = Cell(a * b.x,   a * b.y)
+*(a::Cell, b::Integer) = Cell(a.x * b,   a.y * b)
 
 function each_cell()
     Channel(ctype=Cell) do chnl
@@ -37,7 +38,7 @@ end
 
 function each_empty_cell(board::Array{Tile})
     Channel(ctype=Cell) do chnl
-        for cell in each_cell
+        for cell in each_cell()
             if board[cell] == Empty
                 put!(chnl, cell)
             end
@@ -77,24 +78,77 @@ function check_capture(board, cell, color)
     return result
 end
 
-function chech_can_be_capture(board, cell, color)
+function check_can_be_capture(board, cell, color)
     for dir in EACH_DIR
-        if board[cell - dir] == Empty &&
-        board[cell + dir] == color &&
-        board[cell + 2dir] == enemy(color)
+        if (board[cell - dir] == Empty &&
+            board[cell + dir] == color &&
+            board[cell + 2dir] == enemy(color)) ||
+            (board[cell - 2dir] == Empty &&
+            board[cell - dir] == color &&
+            board[cell + dir] == enemy(color))
             return true
         end
     end
- end
- 
- function is_win(board, cell, color)
+    return false
+end
+
+function find_winning_lines(board, cell, dir, color)
+    line = []
+    lines = []
+    i = 1
+    while board[cell - i * dir] == color
+        push!(line, cell - i * dir)
+        i += 1
+    end
+    push!(line, cell)
+    i = 1
+    while board[cell + i * dir] == color
+        push!(line, cell + i * dir)
+        i += 1
+    end
+    while length(line) >= 5
+        push!(lines, line[length(line) - 4:end])
+        pop!(line)
+    end
+    return lines
+end
+
+function check_winning_line(board, line, color)
+    for win_cell in line
+        check_can_be_capture(board, win_cell, color) && return true
+    end
+    return false
+end
+
+function check_line_capture(board, cell, color)
+    no_winning_line = true
     for dir in HALF_DIR
         if find_length(board, cell, dir, color) >= 5
-            for win_cell in find_line_cells(board, cell, dir, color)
-                checK_can_be_capture(board, win_cell, color) && return false
+            no_winning_line = false
+            for line in find_winning_lines(board, cell, dir, color)
+                check_winning_line(board, line, color) && return true
             end
             return true
         end
     end
-    false
- end
+    return no_winning_line
+end
+
+function check_win_by_captures(board, color)
+    for cell in each_cell()
+        if board[cell] == color
+            check_can_be_capture(board, cell, color) && return true
+        end
+    end
+    return false
+end
+
+function is_win(board, color, nb_capture)
+    for cell in each_cell()
+        if board[cell] == color && !check_line_capture(board, cell, color) &&
+            !(nb_capture == 4 && check_win_by_captures(board, color))
+            return true
+        end
+    end
+    return false
+end
