@@ -1,29 +1,20 @@
-isempty(board::Array{Tile, 2}, x::Integer, y::Integer) = board[x, y] == Empty
-
-iscolor(board::Array{Tile, 2}, x::Integer, y::Integer, color::Tile) = board[x, y] == color
-
-function check_free_three(board::Array{Tile, 2}, color::Tile, x::Integer, y::Integer, i::Integer, j::Integer, free_three::Array{Tile})
+function is_three(board::Array{Tile, 2}, color::Tile, cell::Cell, dir::Cell, free_three::Array{Tile})
     for (index, type) in enumerate(free_three)
-        if type == Empty && !isempty(board, x + i * (index - 1), y + j * (index - 1))
+        if type == Empty && board[cell + dir * (index - 1)] != Empty
             return false
-        elseif type == White && !iscolor(board, x + i * (index - 1), y + j * (index - 1), color)
+        elseif type == White && board[cell + dir * (index - 1)] != color
             return false
         end
     end
     true
 end
 
-function check_pos_free_three(board::Array{Tile, 2}, color::Tile, x::Integer, y::Integer, i::Integer, j::Integer)
+function is_any_three(board::Array{Tile, 2}, color::Tile, cell::Cell, dir::Cell)
     count = 0
     free_threes = [[Empty White White Empty White Empty], [Empty White White White Empty]]
     for free_three in free_threes
-        if (x >= 1 && y >= 1 &&
-            x <= 19 && y <= 19 && 
-            x + i * (length(free_three) - 1) <= 19 && 
-            x + i * (length(free_three) - 1) >= 1 &&
-            y + j * (length(free_three) - 1) <= 19 &&
-            y + j * (length(free_three) - 1) >= 1)
-            if check_free_three(board, color, x, y, i, j, free_three)
+        if (board[cell] != Outside && board[cell + dir * length(free_three) - 1)] != Outside
+            if is_three(board, color, cell, dir, free_three)
                 count += 1
             end
         end
@@ -31,31 +22,30 @@ function check_pos_free_three(board::Array{Tile, 2}, color::Tile, x::Integer, y:
     return count
 end
 
-function check_all_free_three(board::Array{Tile, 2}, color::Tile, x::Integer, y::Integer)
+function is_double_three(board::Array{Tile, 2}, color::Tile, cell::Cell)
     count = 0
-    board[x, y] = color
+    board[cell] = color
     for i in -4:4
         if i != 0
-            count += check_pos_free_three(board, color, x + i, y + i, 1, 1)
-            count += check_pos_free_three(board, color, x + i, y - i, 1, -1)
-            count += check_pos_free_three(board, color, x + i, y, 1, 0)
-            count += check_pos_free_three(board, color, x, y + i, 0, 1)
+            for dir in HALF_DIR
+                count += is_any_three(board, color, cell + i * dir, dir)
+            end
         end
         if count >= 2
-            board[x, y] = Forbidden
+            board[cell] = Empty
             return true
         end
     end
-    board[x, y] = Empty
-    return false
+    board[cell] = Empty
+    false
 end
 
-function check_all_free_threes(board::Array{Tile, 2}, color::Tile)
-    for y in 1:19
-        for x in 1:19
-            if board[x, y] == Empty
-                check_all_free_three(board, color, x, y)
-            end
+function find_double_threes(board::Array{Tile, 2}, color::Tile)
+    result = Cell[]
+    for cell in each_empty_cell()
+        if is_double_three(board, color, cell)
+            push!(result, cell)
         end
     end
+    return result
 end
