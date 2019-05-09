@@ -11,7 +11,7 @@ mutable struct Board
     captured::Array{Integer, 1}
     time::Array{Dates.AbstractTime, 1}
     color::Tile
-    Board() = new(fill(Empty, 19, 19), [], [0, 0], [Millisecond(0), Millisecond(0)], Black)
+    Board() = new(fill(Empty, 19, 19), [], [0, 0], [Millisecond(0), Millisecond(0)], White)
     Board(board) = new(deepcopy(board.tab), copy(board.forbiddens), copy(board.captured), copy(board.time), board.color)
 end
 
@@ -81,7 +81,7 @@ function find_length(board::Board, current::Cell, dir::Cell)
     length
 end
 
-const EACH_DIR = Cell[Cell(i, j) for i in -1:1 for j in -1:1 if !(i == j == 0)]
+const EACH_DIR = Cell[Cell(j, i) for i in -1:1 for j in -1:1 if !(i == j == 0)]
 const HALF_DIR = EACH_DIR[5:end]
 
 function capture(board::Board, cell::Cell)

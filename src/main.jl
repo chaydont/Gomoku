@@ -17,54 +17,69 @@ end
 
 get_cell_from_pixel(x, y) = Cell(div(x * 19, BOARD_SIZE) + 1, div(y * 19, BOARD_SIZE) + 1)
 
+function get_events()
+    events = SDL.Event(ntuple(i->UInt8(0),56))
+    SDL.PollEvent(pointer_from_objref(events))
+    evtype = UInt32(0)
+    for x in events._Event[4:-1:1]
+        evtype = evtype << (sizeof(x)*8)
+        evtype |= x
+    end
+    SDL.Event(evtype)
+end
+
+function get_mouse_state()
+    x, y = Int[0], Int[0]
+    mouseKeys = SDL.GetMouseState(pointer(x), pointer(y))
+    get_cell_from_pixel(x[1], y[1]), (mouseKeys & SDL.BUTTON_LEFT) > 0
+end
+
+AI = false
+last_pressed = false
+
 function play_turn(board::Board, cell::Cell)
     board[cell] = board.color
     add_captured(board, capture(board, cell))
-    board.color = !board.color
+end
+
+function play_full_turn(board::Board, cell::Cell)
+    play_turn(board, cell)
+    is_win(board) && return true
+    change_color(board)
     set_time(board, Millisecond(0))
+    false
+end
+
+function human_turn(board)
+    get_events() == SDL.QuitEvent && return true
+    cell, click = get_mouse_state()
+    if click && !last_pressed && board[cell] == Empty && !is_double_three(board, cell)
+        play_full_turn(board, cell) && return true
+    end
+    global last_pressed = click
+    false
+end
+
+function AI_turn(board)
+    score, best_cell = ai(board, 0)
+    @show score, best_cell
+    play_full_turn(board, cell)
 end
 
 function play()
+    @info HALF_DIR
     board = Board()
-    prev = 0
-
+    display_board(board)
     start_time = now()
     while true
-        x, y = Int[0], Int[0]
-    
-        events = SDL.Event(ntuple(i->UInt8(0),56))
-        SDL.PollEvent(pointer_from_objref(events))
-        evtype = UInt32(0)
-        for x in events._Event[4:-1:1]
-            evtype = evtype << (sizeof(x)*8)
-            evtype |= x
+        if AI && board.color == Black
+            AI_turn(board) && break
+        else
+            human_turn(board) && break
         end
-        SDL.Event(evtype) == SDL.QuitEvent && break
-        mouseKeys = SDL.GetMouseState(pointer(x), pointer(y))
-        cell = get_cell_from_pixel(x[1], y[1])
-        display_board(board)
-
-        if ((prev & SDL.BUTTON_LEFT) == 0) && (mouseKeys & SDL.BUTTON_LEFT) > 0
-            if board[cell] == Empty && !is_double_three(board, cell)
-                board.color = !board.color
-                play_turn(board, cell)
-                board.color = !board.color
-                is_win(board) && break
-                board.color = !board.color
-                display_board(board)
-                add_time(board, now() - start_time)
-                start_time = now()
-                best, best_cell = ai(board, 0)
-                add_time(board, now() - start_time)
-                play_turn(board, best_cell)
-                board.color = !board.color
-                is_win(board) && break
-                start_time = now()
-            end
-        end
-        prev = mouseKeys
         add_time(board, now() - start_time)
         start_time = now()
+        display_board(board)
     end
     @info "$(board.color) wins !"
 end
