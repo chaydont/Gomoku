@@ -70,21 +70,6 @@ function each_empty_cell(board::Board)
     end
 end
 
-function find_length(board::Board, current::Cell, dir::Cell)
-    length = 1
-    cell = current - dir
-    while board[cell] == board.color
-        length += 1
-        cell -= dir
-    end
-    cell = current + dir
-    while board[cell] == board.color
-        length += 1
-        cell += dir
-    end
-    length
-end
-
 function capture(board::Board, cell::Cell)
     result = 0
     for dir in EACH_DIR
