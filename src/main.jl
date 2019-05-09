@@ -6,7 +6,9 @@ const SDL = SimpleDirectMediaLayer
 include("Game.jl")
 include("Rendering.jl")
 include("AI.jl")
-include("Check_free_threes.jl")
+include("Is_double_three.jl")
+include("Is_win.jl")
+
 
 function Base.show(io::IO, tile::Tile)
     tile == Empty && print(io, ".")
@@ -34,11 +36,12 @@ function get_mouse_state()
     get_cell_from_pixel(x[1], y[1]), (mouseKeys & SDL.BUTTON_LEFT) > 0
 end
 
-AI = false
+AI = true
 last_pressed = false
 
 function play_turn(board::Board, cell::Cell)
     board[cell] = board.color
+    add_piece(board, cell)
     add_captured(board, capture(board, cell))
 end
 
@@ -63,7 +66,7 @@ end
 function AI_turn(board)
     score, best_cell = ai(board, 0)
     @show score, best_cell
-    play_full_turn(board, cell)
+    play_full_turn(board, best_cell)
 end
 
 function play()
@@ -73,7 +76,7 @@ function play()
     start_time = now()
     while true
         if AI && board.color == Black
-            AI_turn(board) && break
+            @time AI_turn(board) && break
         else
             human_turn(board) && break
         end

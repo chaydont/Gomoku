@@ -39,6 +39,7 @@ function place_pieces(board::Board)
         piece = board[cell]
         if piece in (Black, White)
             place((cell.x - 1) * TILE_SIZE + OFFSET, (cell.y - 1) * TILE_SIZE + OFFSET, piece)
+
         end
     end
 end

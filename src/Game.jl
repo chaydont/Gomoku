@@ -7,12 +7,20 @@ end
 
 mutable struct Board
     tab::Array{Tile, 2}
+    pieces::Tuple{Array{Cell,1},Array{Cell,1}}
     forbiddens::Array{Cell, 1}
     captured::Array{Integer, 1}
     time::Array{Dates.AbstractTime, 1}
     color::Tile
-    Board() = new(fill(Empty, 19, 19), [], [0, 0], [Millisecond(0), Millisecond(0)], White)
-    Board(board) = new(deepcopy(board.tab), copy(board.forbiddens), copy(board.captured), copy(board.time), board.color)
+    Board() = new(fill(Empty, 19, 19), ([], []), [], [0, 0], [Millisecond(0), Millisecond(0)], White)
+    Board(board) = new(deepcopy(board.tab), deepcopy(board.pieces), copy(board.forbiddens), copy(board.captured), copy(board.time), board.color)
+end
+
+get_pieces(board::Board; enemy=false) = board.pieces[Int(enemy ? !board.color : board.color)]
+add_piece(board::Board, cell; enemy=false) = push!(get_pieces(board; enemy=enemy), Int(enemy ? !board.color : board.color))
+
+function rm_piece(board::Board, cell::Cell; enemy=false)
+    deleteat!(get_pieces(board; enemy=enemy), findfirst(get_pieces(board; enemy=enemy), cell))
 end
 
 get_time(board::Board; enemy=false) = board.time[Int(enemy ? !board.color : board.color)]
@@ -90,7 +98,9 @@ function capture(board::Board, cell::Cell)
     for dir in EACH_DIR
         if board[cell+dir] == !board.color && board[cell+2dir] == !board.color && board[cell+3dir] == board.color
             board[cell+dir] = Empty
+            rm_piece(board, cell+dir)
             board[cell+2dir] = Empty
+            rm_piece(board, cell+2dir)
             result += 2
         end
     end
