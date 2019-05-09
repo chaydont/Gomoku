@@ -44,7 +44,7 @@ end
 function is_enemy_win_by_captures(board::Board)
     for cell in get_pieces(board)
         if board[cell] == board.color
-            check_can_be_capture(board, cell) && return true
+            is_cell_capturable(board, cell) && return true
         end
     end
     return false
@@ -54,7 +54,7 @@ function is_win(board::Board)
     if get_captured(board) >= 10
         return true
     end
-    if is_win_with_line(board) && !(is_capturable(board, enemy = true) == 8 && is_enemy_win_by_captures(board))
+    if is_win_with_line(board) && !(get_captured(board; enemy=true) == 8 && is_enemy_win_by_captures(board))
         return true
     end
     return false

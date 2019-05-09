@@ -36,7 +36,6 @@ function get_mouse_state()
     get_cell_from_pixel(x[1], y[1]), (mouseKeys & SDL.BUTTON_LEFT) > 0
 end
 
-AI = true
 last_pressed = false
 
 function play_turn(board::Board, cell::Cell)
@@ -64,13 +63,14 @@ function human_turn(board)
 end
 
 function AI_turn(board)
-    score, best_cell = ai(board, 0)
-    @show score, best_cell
+    score, best_cell = ai(board, 2)
     play_full_turn(board, best_cell)
 end
 
+
+AI = true
+
 function play()
-    @info HALF_DIR
     board = Board()
     display_board(board)
     start_time = now()
@@ -85,6 +85,8 @@ function play()
         display_board(board)
     end
     @info "$(board.color) wins !"
+    display_board(board)
+    sleep(10)
 end
 
 play()

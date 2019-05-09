@@ -16,11 +16,17 @@ mutable struct Board
     Board(board) = new(deepcopy(board.tab), deepcopy(board.pieces), copy(board.forbiddens), copy(board.captured), copy(board.time), board.color)
 end
 
+change_color(board::Board) = board.color = !board.color
+
 get_pieces(board::Board; enemy=false) = board.pieces[Int(enemy ? !board.color : board.color)]
-add_piece(board::Board, cell; enemy=false) = push!(get_pieces(board; enemy=enemy), Int(enemy ? !board.color : board.color))
+add_piece(board::Board, cell; enemy=false) = push!(board.pieces[Int(enemy ? !board.color : board.color)], cell)
 
 function rm_piece(board::Board, cell::Cell; enemy=false)
-    deleteat!(get_pieces(board; enemy=enemy), findfirst(get_pieces(board; enemy=enemy), cell))
+    for (i, v) in enumerate(board.pieces[Int(enemy ? !board.color : board.color)])
+        if v == cell
+            deleteat!(board.pieces[Int(enemy ? !board.color : board.color)], i)
+        end
+    end
 end
 
 get_time(board::Board; enemy=false) = board.time[Int(enemy ? !board.color : board.color)]
@@ -78,14 +84,33 @@ function each_empty_cell(board::Board)
     end
 end
 
+function is_alone(board, cell)
+    for dir in EACH_DIR
+        if board[cell + dir] in (Black, White)
+            return false
+        end
+    end
+    return true
+end
+
+function each_not_alone_cell(board::Board)
+    Channel(ctype=Cell) do chnl
+        for cell in each_empty_cell(board)
+            if !is_alone(board, cell)
+                put!(chnl, cell)
+            end
+        end
+    end
+end
+
 function capture(board::Board, cell::Cell)
     result = 0
     for dir in EACH_DIR
         if board[cell+dir] == !board.color && board[cell+2dir] == !board.color && board[cell+3dir] == board.color
             board[cell+dir] = Empty
-            rm_piece(board, cell+dir)
+            rm_piece(board, cell+dir; enemy=true)
             board[cell+2dir] = Empty
-            rm_piece(board, cell+2dir)
+            rm_piece(board, cell+2dir; enemy=true)
             result += 2
         end
     end
