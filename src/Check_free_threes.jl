@@ -43,7 +43,3 @@ function is_double_three(board::Board, cell::Cell)
     board[cell] = Empty
     false
 end
-
-function find_double_threes(board::Board)
-    [cell for cell in each_empty_cell(board) if is_double_three(board, cell)]
-end

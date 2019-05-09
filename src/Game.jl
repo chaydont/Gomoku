@@ -11,7 +11,8 @@ mutable struct Board
     captured::Array{Integer, 1}
     time::Array{Dates.AbstractTime, 1}
     color::Tile
-    Board() = new(fill(Empty, 19, 19), [], [0, 0], [Millisecond(0), Millisecond(0)], White)
+    Board() = new(fill(Empty, 19, 19), [], [0, 0], [Millisecond(0), Millisecond(0)], Black)
+    Board(board) = new(deepcopy(board.tab), copy(board.forbiddens), copy(board.captured), copy(board.time), board.color)
 end
 
 get_time(board::Board; enemy=false) = board.time[Int(enemy ? !board.color : board.color)]

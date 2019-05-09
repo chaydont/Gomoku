@@ -18,19 +18,10 @@ end
 get_cell_from_pixel(x, y) = Cell(div(x * 19, BOARD_SIZE) + 1, div(y * 19, BOARD_SIZE) + 1)
 
 function play_turn(board::Board, cell::Cell)
-    for empty_cell in board.forbiddens
-        board[empty_cell] = Empty
-    end
     board[cell] = board.color
-    board.forbiddens = find_double_threes(board)
-    for empty_cell in board.forbiddens
-        board[empty_cell] = Forbidden
-    end
     add_captured(board, capture(board, cell))
-    is_win(board) && return true
-    set_time(board, Millisecond(0))
     board.color = !board.color
-    false
+    set_time(board, Millisecond(0))
 end
 
 function play()
@@ -54,8 +45,21 @@ function play()
         display_board(board)
 
         if ((prev & SDL.BUTTON_LEFT) == 0) && (mouseKeys & SDL.BUTTON_LEFT) > 0
-            if board[cell] == Empty
-                play_turn(board, cell) && break
+            if board[cell] == Empty && !is_double_three(board, cell)
+                board.color = !board.color
+                play_turn(board, cell)
+                board.color = !board.color
+                is_win(board) && break
+                board.color = !board.color
+                display_board(board)
+                add_time(board, now() - start_time)
+                start_time = now()
+                best, best_cell = ai(board, 0)
+                add_time(board, now() - start_time)
+                play_turn(board, best_cell)
+                board.color = !board.color
+                is_win(board) && break
+                start_time = now()
             end
         end
         prev = mouseKeys
