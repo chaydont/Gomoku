@@ -1,8 +1,3 @@
-using SimpleDirectMediaLayer
-using Dates
-
-const SDL = SimpleDirectMediaLayer
-
 const BOARD_SIZE = 750
 const MENU_SIZE = 250
 const TILE_SIZE = Int(floor(BOARD_SIZE / 19))
@@ -33,13 +28,13 @@ function create_background()
     SDL.RenderCopy(renderer, board_texture, Ref(src), Ref(dir))
 end
 
-function place(x, y, piece)
+function place(x, y, piece::Tile)
     dir = SDL.Rect(x, y, STONE_SIZE, STONE_SIZE)
     src = SDL.Rect(0, 0, 384, 384)
     SDL.RenderCopy(renderer, piece == Black ? black_texture : white_texture, Ref(src), Ref(dir))
 end
 
-function place_pieces(board::AbstractArray{Tile, 2})
+function place_pieces(board::Board)
     for cell in each_cell()
         piece = board[cell]
         if piece in (Black, White)
@@ -84,12 +79,12 @@ function display_captured(number::Integer, player::Tile)
     end
 end
 
-function display_board(board::AbstractArray{Tile, 2}, white_captured, black_captured, white_time, black_time)
+function display_board(board::Board)
     create_background()
-    display_timer(Period(white_time), Black)
-    display_timer(Period(black_time), White)
-    display_captured(black_captured, White)
-    display_captured(white_captured, Black)
+    display_timer(Period(board.time[Int(White)]), Black)
+    display_timer(Period(board.time[Int(Black)]), White)
+    display_captured(board.captured[Int(Black)], White)
+    display_captured(board.captured[Int(White)], Black)
     place_pieces(board)
     SDL.RenderPresent(renderer)
 end

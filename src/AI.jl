@@ -1,4 +1,4 @@
-# function check_pair(board::Array{Tile, 2}, x::Integer, y::Integer, color::Tile, enemy::Tile)
+# function check_pair(board::Board, x::Integer, y::Integer, color::Tile, enemy::Tile)
 #     score = 0
 #     minx = x == 1 ? 1 : x - 1
 #     maxx = x == 19 ? 19 : x + 1
@@ -45,7 +45,7 @@
 #     return length
 # end
 
-# function check_line(board::Array{Tile, 2}, x::Integer, y::Integer, color::Tile)
+# function check_line(board::Board, x::Integer, y::Integer, color::Tile)
 #     pos = [CartesianIndex(-1, -1), CartesianIndex(-1, 0), CartesianIndex(0, -1), CartesianIndex(1, -1)]
 #     score = 0
 #     for a in pos
@@ -61,19 +61,19 @@
 #     return score
 # end
 
-function heuristic(board::Array{Tile, 2}, color::Tile)
+function heuristic(board::Board, color::Tile)
 
     return score
 end
 
 
-function ai(board::Array{Tile, 2},color::Tile, depth::Integer=3)
+function ai(board::Board,color::Tile, depth::Integer=3)
     best = 10000000
     best_cell = Cell(0, 0)
     for cell in each_emtpy_cell(board)
         board[cell] = color
         if depth > 0
-            actual, acutal_cell = -ai(board, enemy(color), depth - 1)
+            actual, acutal_cell = -ai(board, !color, depth - 1)
         else
             actual = heuristic(board, color)
         end

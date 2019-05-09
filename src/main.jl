@@ -1,3 +1,8 @@
+using Dates
+using SimpleDirectMediaLayer
+
+const SDL = SimpleDirectMediaLayer
+
 include("Game.jl")
 include("Rendering.jl")
 include("AI.jl")
@@ -12,13 +17,26 @@ end
 
 get_cell_from_pixel(x, y) = Cell(div(x * 19, BOARD_SIZE) + 1, div(y * 19, BOARD_SIZE) + 1)
 
-function play()
-    board = fill(Empty, 19, 19)
-    prev = 0
-    color = White
+function play_turn(board::Board, cell::Cell)
+    for empty_cell in board.forbiddens
+        board[empty_cell] = Empty
+    end
+    board[cell] = board.color
+    board.forbiddens = find_double_threes(board)
+    for empty_cell in board.forbiddens
+        board[empty_cell] = Forbidden
+    end
+    add_captured(board, capture(board, cell))
+    is_win(board) && return true
+    set_time(board, Millisecond(0))
+    board.color = !board.color
+    false
+end
 
-    captured = [0, 0]
-    time = [Millisecond(0), Millisecond(0)]
+function play()
+    board = Board()
+    prev = 0
+
     start_time = now()
     while true
         x, y = Int[0], Int[0]
@@ -33,33 +51,18 @@ function play()
         SDL.Event(evtype) == SDL.QuitEvent && break
         mouseKeys = SDL.GetMouseState(pointer(x), pointer(y))
         cell = get_cell_from_pixel(x[1], y[1])
-        display_board(board, captured..., time...)
+        display_board(board)
+
         if ((prev & SDL.BUTTON_LEFT) == 0) && (mouseKeys & SDL.BUTTON_LEFT) > 0
-            forbiddens = find_double_threes(board, color)
-            @info forbiddens
-            for empty_cell in forbiddens
-                board[empty_cell] = Forbidden
-            end
             if board[cell] == Empty
-                for empty_cell in forbiddens
-                    board[empty_cell] = Empty
-                end
-                board[cell] = color
-                captured[Int(color)] += check_capture(board, cell, color)
-                is_win(board, color, captured) && break
-                time[Int(color)] = Millisecond(0)
-                color = enemy(color)
-            else
-                for empty_cell in forbiddens
-                    board[empty_cell] = Empty
-                end
+                play_turn(board, cell) && break
             end
         end
         prev = mouseKeys
-        time[Int(enemy(color))] += now() - start_time
+        add_time(board, now() - start_time)
         start_time = now()
     end
-    @info "$color wins !"
+    @info "$(board.color) wins !"
 end
 
 play()
