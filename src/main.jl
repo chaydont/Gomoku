@@ -40,8 +40,9 @@ last_pressed = false
 
 function play_turn(board::Board, cell::Cell)
     board[cell] = board.color
-    add_piece(board, cell)
-    add_captured(board, capture(board, cell))
+    captured = capture(board, cell)
+    add_captured(board, length(captured))
+    captured
 end
 
 function play_full_turn(board::Board, cell::Cell)

@@ -7,27 +7,19 @@ end
 
 mutable struct Board
     tab::Array{Tile, 2}
-    pieces::Tuple{Array{Cell,1},Array{Cell,1}}
-    forbiddens::Array{Cell, 1}
+    pieces::Tuple{Array{Cell},Array{Cell}}
     captured::Array{Integer, 1}
     time::Array{Dates.AbstractTime, 1}
     color::Tile
-    Board() = new(fill(Empty, 19, 19), ([], []), [], [0, 0], [Millisecond(0), Millisecond(0)], White)
-    Board(board) = new(deepcopy(board.tab), deepcopy(board.pieces), copy(board.forbiddens), copy(board.captured), copy(board.time), board.color)
+    Board() = new(fill(Empty, 19, 19), ([], []), [0, 0], [Millisecond(0), Millisecond(0)], White)
+    Board(board) = new(deepcopy(board.tab), deepcopy(board.pieces), copy(board.captured), copy(board.time), board.color)
 end
 
 change_color(board::Board) = board.color = !board.color
 
 get_pieces(board::Board; enemy=false) = board.pieces[Int(enemy ? !board.color : board.color)]
-add_piece(board::Board, cell; enemy=false) = push!(board.pieces[Int(enemy ? !board.color : board.color)], cell)
-
-function rm_piece(board::Board, cell::Cell; enemy=false)
-    for (i, v) in enumerate(board.pieces[Int(enemy ? !board.color : board.color)])
-        if v == cell
-            deleteat!(board.pieces[Int(enemy ? !board.color : board.color)], i)
-        end
-    end
-end
+add_piece(board::Board, cell; enemy=false) = add_piece(board, cell, enemy ? !board.color : board.color)
+add_piece(board::Board, cell, tile) = push!(board.pieces[Int(tile)], cell)
 
 get_time(board::Board; enemy=false) = board.time[Int(enemy ? !board.color : board.color)]
 set_time(board::Board, value; enemy=false) = board.time[Int(enemy ? !board.color : board.color)] = value
@@ -46,7 +38,22 @@ end
 function Base.setindex!(board::Board, tile::Tile, cell::Cell)
     (cell.y < 1 || cell.y > 19) && @error "Failing to write $tile at index $cell"
     (cell.x < 1 || cell.x > 19) && @error "Failing to write $tile at index $cell"
+    if tile in (Black, White)
+        add_piece(board, cell, tile)
+    end
     board.tab[cell.x, cell.y] = tile
+end
+
+function each_piece(board::Board; enemy=false)
+    Channel(ctype=Cell) do chnl
+        for (i, cell) in enumerate(get_pieces(board; enemy=enemy))
+            if board[cell] != (enemy ? !board.color : board.color)
+                deleteat!(board.pieces[Int(enemy ? !board.color : board.color)], i)
+            else
+                put!(chnl, cell)
+            end
+        end
+    end
 end
 
 import Base.+
@@ -104,15 +111,19 @@ function each_not_alone_cell(board::Board)
 end
 
 function capture(board::Board, cell::Cell)
-    result = 0
-    for dir in EACH_DIR
-        if board[cell+dir] == !board.color && board[cell+2dir] == !board.color && board[cell+3dir] == board.color
+    result = []
+    for dir in HALF_DIR
+        if board[cell + dir] == !board.color && board[cell + 2dir] == !board.color && board[cell + 3dir] == board.color
             board[cell+dir] = Empty
-            rm_piece(board, cell+dir; enemy=true)
+            push!(result, cell+dir)
             board[cell+2dir] = Empty
-            rm_piece(board, cell+2dir; enemy=true)
-            result += 2
+            push!(result, cell+2dir)
+        elseif board[cell - dir] == !board.color && board[cell - 2dir] == !board.color && board[cell - 3dir] == board.color
+            board[cell-dir] = Empty
+            push!(result, cell-dir)
+            board[cell-2dir] = Empty
+            push!(result, cell-2dir)
         end
     end
-    return result
+    result
 end
