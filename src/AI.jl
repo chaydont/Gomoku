@@ -1,25 +1,24 @@
 function find_length(board::Board, cell::Cell, dir::Cell; enemy::Bool=false)
-    length = 0
     color = enemy ? !board.color : board.color
-    if board[cell - dir] == color
-        return 0
-    end
+    length = 1
     while board[cell + length * dir] == color
         length += 1
     end
-    empty_length = 1
-    while board[cell - empty_length * dir] == Empty && empty_length + length - 1 < 5
+    empty_length = 0
+    count = 1
+    while board[cell - count * dir] == Empty && empty_length + length < 5
         empty_length += 1
+        count += 1
     end
     count = 1
-    empty_length -= 1
     while board[cell + count * dir] == Empty && empty_length + length < 5
         empty_length += 1
+        count += 1
     end
     if empty_length + length < 5
         return 0
     end
-    return length == 1 ? 0 : length
+    return length <= 1 ? 0 : length
 end
 
 function count_all_lines(board::Board)
