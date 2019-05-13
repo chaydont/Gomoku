@@ -18,7 +18,7 @@ function find_length(board::Board, cell::Cell, dir::Cell; enemy::Bool=false)
     if empty_length + length < 5
         return 0
     end
-    return length <= 1 ? 0 : length
+    return length - 1
 end
 
 function count_all_lines(board::Board)
@@ -34,7 +34,7 @@ end
 function heuristic(board::Board)
     score = 0
     score += is_win(board) ? 10_000_000 : 0
-    score += count_all_lines(board) * 20
+    score += count_all_lines(board) * 100
     score += (get_captured(board))^2 * 100
     change_color(board)
     score -= is_win(board) ? 10_000_000 : 0
