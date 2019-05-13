@@ -16,8 +16,13 @@ function is_cell_capturable(board::Board, cell::Cell)
 end
 
 function is_line_capturable(board::Board, line::Array{Cell, 1})
-    for cell in line
-        is_cell_capturable(board, cell) && return true
+    last_capturable_cell = 0
+    for (index, cell) in enumerate(line)
+        if index - last_capturable_cell > 5
+            return true
+        elseif  is_cell_capturable(board, cell) && length(line) - index < 5
+            return true
+        end
     end
     return false
 end
@@ -28,11 +33,11 @@ function is_win_with_line(board::Board)
             for dir in HALF_DIR
                 line = [cell]
                 length = 1
-                while board[cell + length * dir] == board.color && length < 5
+                while board[cell + length * dir] == board.color
                     push!(line, cell + length * dir)
                     length += 1
                 end
-                if length == 5
+                if length >= 5
                     !is_line_capturable(board, line) && return true 
                 end
             end

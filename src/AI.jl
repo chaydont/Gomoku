@@ -4,6 +4,9 @@ function find_length(board::Board, cell::Cell, dir::Cell; enemy::Bool=false)
     while board[cell + length * dir] == color
         length += 1
     end
+    if length <= 2
+        return length - 1
+    end
     empty_length = 0
     count = 1
     while board[cell - count * dir] == Empty && empty_length + length < 5
@@ -25,7 +28,9 @@ function count_all_lines(board::Board)
     score = 0
     for cell in each_piece(board)
         for dir in HALF_DIR
-            score += find_length(board, cell, dir) ^ 4
+            if board[cell - dir] != board.color
+                score += find_length(board, cell, dir) ^ 4
+            end
         end
     end
     return score
@@ -33,11 +38,13 @@ end
 
 function heuristic(board::Board)
     score = 0
-    score += is_win(board) ? 10_000_000 : 0
+    is_win(board) && return 10_000_000
+    change_color(board)
+    is_win(board) && return -10_000_000
+    change_color(board)
     score += count_all_lines(board) * 100
     score += (get_captured(board))^2 * 100
     change_color(board)
-    score -= is_win(board) ? 10_000_000 : 0
     score -= count_all_lines(board) * 100
     score -= (get_captured(board))^2 * 100
     change_color(board)
@@ -52,78 +59,43 @@ function revert_turn(board::Board, cell::Cell, captured)
     end
 end
 
-function get_moves(board, turn)
-    moves = Cell[]
-    scores = Integer[]
-    for cell in each_good_cell(board)
-        captured = play_turn(board, cell)
-        child_value = heuristic(board) * (turn ? 1 : -1)
-        revert_turn(board, cell, captured)
-        if turn
-            count = 1
-            while count <= length(scores) && child_value <= scores[count]
-                count += 1
-            end
-            insert!(moves, count, cell)
-            insert!(scores, count, child_value)
-        else
-            count = 1
-            while count <= length(scores) && child_value >= scores[count]
-                count += 1
-            end
-            insert!(moves, count, cell)
-            insert!(scores, count, child_value)
-        end
-    end
-    moves
-end
-
-function each_good_cell(board)
-    moves = Cell[]
-    for cell in each_cell()
-        if board[cell] == Empty && !is_alone(board, cell) && !is_double_three(board, cell)
-            push!(moves, cell)
-        end
-    end
-    moves
-end
-
 function ai(board::Board, depth::Integer=3, alpha::Integer=-10_000_000, beta::Integer=10_000_000, turn::Bool=true)
     if depth == 0
         return heuristic(board) * (turn ? 1 : -1), nothing
     end
     best_value = turn ? -10_000_000 : 10_000_000
     best_cell = Cell(19, 19)
-    cells = (depth >= 2 ? get_moves(board, turn) : each_good_cell(board))
-    for cell in cells
-        captured = play_turn(board, cell)
-        if is_win(board)
+    for cell in each_cell()
+        if board[cell] == Empty && !is_alone(board, cell) && !is_double_three(board, cell)
+            captured = play_turn(board, cell)
+            if is_win(board)
+                revert_turn(board, cell, captured)
+                return (turn ? 10_000_000 : -10_000_000), cell
+            end
+            change_color(board)
+            child_value = ai(board, depth - 1, alpha, beta, !turn)[1]
+            change_color(board)
             revert_turn(board, cell, captured)
-            return (turn ? 10_000_000 : -10_000_000), cell
-        end
-        change_color(board)
-        child_value = ai(board, depth - 1, alpha, beta, !turn)[1]
-        change_color(board)
-        revert_turn(board, cell, captured)
-        if turn
-            if child_value > best_value
-                best_value = child_value
-                best_cell = cell
+            if turn
+                if child_value > best_value
+                    best_value = child_value
+                    best_cell = cell
+                end
+                if best_value > alpha
+                    alpha = best_value
+                end
+            else
+                if child_value < best_value
+                    best_value = child_value
+                    best_cell = cell
+                end
+                if best_value < beta
+                    beta = best_value
+                end
             end
-            if best_value > alpha
-                alpha = best_value
+            if alpha >= beta
+                return best_value, best_cell
             end
-        else
-            if child_value < best_value
-                best_value = child_value
-                best_cell = cell
-            end
-            if best_value < beta
-                beta = best_value
-            end
-        end
-        if alpha >= beta
-            return best_value, best_cell
         end
     end
     return best_value, best_cell
