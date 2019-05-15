@@ -29,7 +29,7 @@ function count_all_lines(board::Board)
     for cell in each_piece(board)
         for dir in HALF_DIR
             if board[cell - dir] != board.color
-                score += find_length(board, cell, dir) ^ 4
+                score += find_length(board, cell, dir) ^ 5
             end
         end
     end
@@ -42,26 +42,58 @@ function heuristic(board::Board)
     change_color(board)
     is_win(board) && return -10_000_000
     change_color(board)
-    score += count_all_lines(board) * 100
-    score += (get_captured(board))^2 * 100
+    score += count_all_lines(board) * 150
+    score += (get_captured(board)) ^ 2 * 150
     change_color(board)
-    score -= count_all_lines(board) * 100
-    score -= (get_captured(board))^2 * 100
+    score -= count_all_lines(board) * 150
+    score -= (get_captured(board)) ^ 2 * 150
     change_color(board)
-    return score
+    return Int(floor(score))
 end
 
 function revert_turn(board::Board, cell::Cell, captured)
     board[cell] = Empty
-    for capture in captured
+    @simd for capture in captured
         board[capture] = !board.color
         add_captured(board, -1)
     end
 end
 
-function ai(board::Board, depth::Integer=3, alpha::Integer=-10_000_000, beta::Integer=10_000_000, turn::Bool=true)
+hash_table = Array{UInt64}(undef, 19, 19)
+
+function create_hash_table()
+    for y in 1:19
+        for x in 1:19
+            global hash_table[x, y] = rand(0:typemax(UInt64)) 
+        end
+    end
+end
+
+function hash(board::Board)
+    hash_key = 0
+    for cell in each_cell()
+        score_cell = 0
+        if board[cell] == White
+            hash_key += hash_table[cell.x, cell.y] ^ 2
+        elseif board[cell] == Black
+            hash_key -= hash_table[cell.x, cell.y] ^ 2
+        end
+    end
+    return hash_key
+end
+
+transposition_table = Array{Tuple{UInt64, Int64}}(undef, 100000)
+
+function ai(board::Board, depth::Integer=3, alpha::Integer=-10_000_000, beta::Integer=10_000_000, hash_key::Integer, turn::Bool=true)
     if depth == 0
-        return heuristic(board) * (turn ? 1 : -1), nothing
+        hash_key = hash(board)
+        if transposition_table[hash_key % 100000][1] == hash_key
+            score = transposition_table[hash_key % 100000][2]
+        else
+            score = heuristic(board) * (turn ? 1 : -1)
+            transposition_table[hash_key % 100000] = (hash_key, score)
+        end
+        return score, nothing
     end
     best_value = turn ? -10_000_000 : 10_000_000
     best_cell = Cell(19, 19)
@@ -69,12 +101,12 @@ function ai(board::Board, depth::Integer=3, alpha::Integer=-10_000_000, beta::In
         if board[cell] == Empty && !is_alone(board, cell) && !is_double_three(board, cell)
             captured = play_turn(board, cell)
             if is_win(board)
-                revert_turn(board, cell, captured)
-                return (turn ? 10_000_000 : -10_000_000), cell
+                child_value = heuristic(board) * (turn ? 1 : -1)
+            else
+                change_color(board)
+                child_value = ai(board, depth - 1, alpha, beta, !turn)[1]
+                change_color(board)
             end
-            change_color(board)
-            child_value = ai(board, depth - 1, alpha, beta, !turn)[1]
-            change_color(board)
             revert_turn(board, cell, captured)
             if turn
                 if child_value > best_value
