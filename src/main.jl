@@ -36,8 +36,6 @@ function get_mouse_state()
     get_cell_from_pixel(x[1], y[1]), (mouseKeys & SDL.BUTTON_LEFT) > 0
 end
 
-last_pressed = false
-
 function play_turn(board::Board, cell::Cell)
     board[cell] = board.color
     captured = capture(board, cell)
@@ -45,33 +43,42 @@ function play_turn(board::Board, cell::Cell)
     captured
 end
 
-function play_full_turn(board::Board, cell::Cell)
-    play_turn(board, cell)
-    is_win(board) && return true
-    change_color(board)
-    set_time(board, Millisecond(0))
-    global start_time = now()
-    false
-end
-
 function human_turn(board)
-    get_events() == SDL.QuitEvent && return true
-    cell, click = get_mouse_state()
-    if click && !last_pressed && board[cell] == Empty && !is_double_three(board, cell)
-        play_full_turn(board, cell) && return true
+    start_time = now()
+    set_time(board, Millisecond(0))
+    last_pressed = false
+    while true
+        get_events() == SDL.QuitEvent && return true
+        cell, click = get_mouse_state()
+        if click && !last_pressed && board[cell] == Empty && !is_double_three(board, cell)
+            play_turn(board, cell)
+            is_win(board) && return true
+            change_color(board)
+            display_board(board)
+            return false
+        end
+        last_pressed = click
+        add_time(board, Millisecond(now() - start_time))
+        start_time = now()
+        display_board(board)
     end
-    global last_pressed = click
     false
 end
 
-function AI_turn(board)
-    global transposition_table = Array{Tuple{UInt64, Int64}}(undef, 100000)
-    score, best_cell = ai(board, 2)
-    play_full_turn(board, best_cell)
+function AI_turn(board, depth=2)
+    start_time = now()
+    score, best_cell = ai(board, depth)
+    play_turn(board, best_cell)
+    is_win(board) && return true
+    set_time(board, Millisecond(now() - start_time))
+    display_board(board)
+    change_color(board)
+    false
 end
 
 
 AI = true
+AI_strength = 4
 
 function play()
     board = Board()
@@ -79,7 +86,7 @@ function play()
     start_time = now()
     while true
         if AI && board.color == Black
-            @time AI_turn(board) && break
+            @time AI_turn(board, AI_strength) && break
         else
             human_turn(board) && break
         end
@@ -87,11 +94,8 @@ function play()
         display_board(board)
     end
     @info "$(board.color) wins !"
-    if board.color == White
-        return true
-    else
-        return false
-    end
+    while !(get_events() == SDL.QuitEvent || get_mouse_state()[2]) end
+    return board.color == White
 end
 
 play()
