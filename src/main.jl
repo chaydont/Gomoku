@@ -36,9 +36,30 @@ function get_mouse_state()
     get_cell_from_pixel(x[1], y[1]), (mouseKeys & SDL.BUTTON_LEFT) > 0
 end
 
+function add_moves(board::Board, cell::Cell)
+    for dir in EACH_DIR
+        if is_alone(board, cell + dir)
+            push!(board.moves, cell + dir)
+        end
+    end
+end
+
+function each_moves(board)
+    Channel(ctype=Cell) do chnl
+        for (i, cell) in enumerate(board.moves)
+            if board[cell] != Empty
+                deleteat!(moves.board, i)
+            else
+                put!(chnl, cell)
+            end
+        end
+    end
+end
+
 function play_turn(board::Board, cell::Cell)
-    board[cell] = board.color
+    add_moves(board, cell)
     captured = capture(board, cell)
+    board[cell] = board.color
     add_captured(board, length(captured))
     captured
 end
@@ -66,26 +87,25 @@ function human_turn(board)
 end
 
 function AI_turn(board, depth=2)
-    global transposition_table = Array{Tuple{UInt64, Int64}}(undef, 100000)
+    global transposition_table = Array{Tuple{UInt64, Int64}}(undef, 1_000_000)
     start_time = now()
     score, best_cell = ai(board, depth)
-    play_turn(board, best_cell)
-    is_win(board) && return true
     set_time(board, Millisecond(now() - start_time))
+    play_turn(board, best_cell)
     display_board(board)
+    is_win(board) && return true
     change_color(board)
     false
 end
 
 
 AI = true
-AI_strength = 4
+AI_strength = 2
 
 function play()
     board = Board()
     display_board(board)
     start_time = now()
-    create_hash_table()
     while true
         if AI && board.color == Black
             @time AI_turn(board, AI_strength) && break
@@ -98,94 +118,6 @@ function play()
     @info "$(board.color) wins !"
     while !(get_events() == SDL.QuitEvent || get_mouse_state()[2]) end
     return board.color == White
-end
-
-function set_variable(a, b, c, d)
-    global variable_1 = a
-    global variable_2 = b
-    global variable_3 = c
-    global variable_4 = d
-end
-
-function AI_play(a, b, c, d, e, f, g, h)
-    board = Board()
-    while true
-        set_variable(a, b, c, d)
-        AI_turn(board) && break
-        set_variable(e, f, g, h)
-        AI_turn(board) && break
-        display_board(board)
-    end
-    @info "$(board.color) wins ! $a, $b, $c, $d / $e, $f, $g, $h"
-    if board.color == White
-        return true
-    else
-        return false
-    end
-end
-
-function create_players(prev_players)
-    players = []
-    for player in prev_players
-        player[5] = 0
-        random = rand(1:4)
-        if random == 1
-            negative = player[1] - rand(1:5)
-            positive = player[1] + rand(1:5)
-            player_1 = copy(player)
-            player_2 = copy(player)
-            player_1[1] = negative
-            player_2[1] = positive
-            push!(players, player_1)
-            push!(players, player_2)
-        elseif random == 2
-            negative = player[2] - rand(10:100)
-            positive = player[2] + rand(10:100)
-            player_1 = copy(player)
-            player_2 = copy(player)
-            player_1[2] = negative
-            player_2[2] = positive
-            push!(players, player_1)
-            push!(players, player_2)
-        elseif random == 3
-            negative = player[3] - rand(1:5)
-            positive = player[3] + rand(1:5)
-            player_1 = copy(player)
-            player_2 = copy(player)
-            player_1[3] = negative
-            player_2[3] = positive
-            push!(players, player_1)
-            push!(players, player_2)
-        elseif random == 4
-            negative = player[4] - rand(10:100)
-            positive = player[4] + rand(10:100)
-            player_1 = copy(player)
-            player_2 = copy(player)
-            player_1[4] = negative
-            player_2[4] = positive
-            push!(players, player_1)
-            push!(players, player_2)
-        end
-    end
-    players
-end
-
-function machine_learning()
-    player = create_players(create_players(create_players([[40, 100, 20, 100, 0]])))
-    while true
-        for i=1:8
-            for j=i + 1:8
-                if AI_play(player[i][1], player[i][2], player[i][3], player[i][4], player[j][1], player[j][2], player[j][3], player[j][4])
-                    player[i][5] += 1
-                else
-                    player[j][5] += 1
-                end
-            end
-        end
-        sort!(player; by = x -> x[5])
-        print(player[5:end])
-        player = create_players(player[5:end])
-    end
 end
 
 play()
