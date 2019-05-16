@@ -19,27 +19,28 @@ function is_line_capturable(board::Board, line::Array{Cell, 1})
     last_capturable_cell = 0
     for (index, cell) in enumerate(line)
         if index - last_capturable_cell > 5
-            return true
-        elseif  is_cell_capturable(board, cell) && length(line) - index < 5
-            return true
+            return false
+        elseif  is_cell_capturable(board, cell)
+            if length(line) - index < 5
+                return true
+            end
+            last_capturable_cell = index
         end
     end
     return false
 end
 
 function is_win_with_line(board::Board)
-    for cell in get_pieces(board)
-        if board[cell] == board.color
-            for dir in HALF_DIR
-                line = [cell]
-                length = 1
-                while board[cell + length * dir] == board.color
-                    push!(line, cell + length * dir)
-                    length += 1
-                end
-                if length >= 5
-                    !is_line_capturable(board, line) && return true 
-                end
+    for cell in each_piece(board)
+        for dir in HALF_DIR
+            line = Cell[cell]
+            length = 1
+            while board[cell + length * dir] == board.color
+                push!(line, cell + length * dir)
+                length += 1
+            end
+            if length >= 5
+                !is_line_capturable(board, line) && return true 
             end
         end
     end
@@ -47,10 +48,8 @@ function is_win_with_line(board::Board)
 end
 
 function is_enemy_win_by_captures(board::Board)
-    for cell in get_pieces(board)
-        if board[cell] == board.color
-            is_cell_capturable(board, cell) && return true
-        end
+    for cell in each_piece(board)
+        is_cell_capturable(board, cell) && return true
     end
     return false
 end

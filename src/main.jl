@@ -36,30 +36,9 @@ function get_mouse_state()
     get_cell_from_pixel(x[1], y[1]), (mouseKeys & SDL.BUTTON_LEFT) > 0
 end
 
-function add_moves(board::Board, cell::Cell)
-    for dir in EACH_DIR
-        if is_alone(board, cell + dir)
-            push!(board.moves, cell + dir)
-        end
-    end
-end
-
-function each_moves(board)
-    Channel(ctype=Cell) do chnl
-        for (i, cell) in enumerate(board.moves)
-            if board[cell] != Empty
-                deleteat!(moves.board, i)
-            else
-                put!(chnl, cell)
-            end
-        end
-    end
-end
-
 function play_turn(board::Board, cell::Cell)
-    add_moves(board, cell)
-    captured = capture(board, cell)
     board[cell] = board.color
+    captured = capture(board, cell)
     add_captured(board, length(captured))
     captured
 end
@@ -73,9 +52,9 @@ function human_turn(board)
         cell, click = get_mouse_state()
         if click && !last_pressed && board[cell] == Empty && !is_double_three(board, cell)
             play_turn(board, cell)
+            display_board(board)
             is_win(board) && return true
             change_color(board)
-            display_board(board)
             return false
         end
         last_pressed = click

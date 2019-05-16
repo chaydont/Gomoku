@@ -11,8 +11,9 @@ mutable struct Board
     captured::Array{Integer, 1}
     time::Array{Dates.AbstractTime, 1}
     color::Tile
-    Board() = new(fill(Empty, 19, 19), ([], []), [0, 0], [Millisecond(0), Millisecond(0)], White)
-    Board(board) = new(deepcopy(board.tab), deepcopy(board.pieces), copy(board.captured), copy(board.time), board.color)
+    moves::Array{Cell, 1}
+    Board() = new(fill(Empty, 19, 19), ([], []), [0, 0], [Millisecond(0), Millisecond(0)], White, [])
+    Board(board) = new(deepcopy(board.tab), deepcopy(board.pieces), copy(board.captured), copy(board.time), board.color, copy(board.moves))
 end
 
 change_color(board::Board) = board.color = !board.color
@@ -36,8 +37,6 @@ function Base.getindex(board::Board, cell::Cell)
 end
 
 function Base.setindex!(board::Board, tile::Tile, cell::Cell)
-    (cell.y < 1 || cell.y > 19) && @error "Failing to write $tile at index $cell"
-    (cell.x < 1 || cell.x > 19) && @error "Failing to write $tile at index $cell"
     if tile in (Black, White)
         add_piece(board, cell, tile)
     end
@@ -45,15 +44,12 @@ function Base.setindex!(board::Board, tile::Tile, cell::Cell)
 end
 
 function each_piece(board::Board; enemy=false)
-    Channel(ctype=Cell) do chnl
-        for (i, cell) in enumerate(get_pieces(board; enemy=enemy))
-            if board[cell] != (enemy ? !board.color : board.color)
-                deleteat!(board.pieces[Int(enemy ? !board.color : board.color)], i)
-            else
-                put!(chnl, cell)
-            end
+    for (i, cell) in enumerate(get_pieces(board; enemy=enemy))
+        if board[cell] != (enemy ? !board.color : board.color)
+            deleteat!(board.pieces[Int(enemy ? !board.color : board.color)], i)
         end
     end
+    get_pieces(board; enemy=enemy)
 end
 
 import Base.+

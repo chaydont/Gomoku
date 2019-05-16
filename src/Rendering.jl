@@ -39,7 +39,6 @@ function place_pieces(board::Board)
         piece = board[cell]
         if piece in (Black, White)
             place((cell.x - 1) * TILE_SIZE + OFFSET, (cell.y - 1) * TILE_SIZE + OFFSET, piece)
-
         end
     end
 end
@@ -59,12 +58,12 @@ function display_time(time::Period, player::Tile)
     SDL.RenderFillRect(renderer, Ref(SDL.Rect(BOARD_SIZE + 114, 79 + (player==Black ? BOARD_SIZE / 2 : 0), 7, 7)))
     SDL.RenderFillRect(renderer, Ref(SDL.Rect(BOARD_SIZE + 114, 95 + (player==Black ? BOARD_SIZE / 2 : 0), 7, 7)))
 
-    centi = div(Int(floor(Millisecond(time).value)), 10)
+    centi = div(time.value, 10)
     write_number(div(time.value, 100) % 10, 2, player)
     write_number(div(time.value, 10) % 10, 3, player)
 end
 
-function display_timer(time::Period, player::Tile)
+function display_timer(time::Millisecond, player::Tile)
     SDL.SetRenderDrawColor(renderer, OUTSIDE_COLOR...)
     SDL.RenderFillRect(renderer, Ref(SDL.Rect(BOARD_SIZE + 30, 50 + (player==Black ? BOARD_SIZE / 2 : 0), 175, 75)))
 
@@ -82,8 +81,8 @@ end
 
 function display_board(board::Board)
     create_background()
-    display_timer(Period(board.time[Int(White)]), Black)
-    display_timer(Period(board.time[Int(Black)]), White)
+    display_timer(board.time[Int(White)], Black)
+    display_timer(board.time[Int(Black)], White)
     display_captured(board.captured[Int(Black)], White)
     display_captured(board.captured[Int(White)], Black)
     place_pieces(board)
