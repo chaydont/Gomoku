@@ -36,8 +36,6 @@ function Base.getindex(board::Board, cell::Cell)
 end
 
 function Base.setindex!(board::Board, tile::Tile, cell::Cell)
-    (cell.y < 1 || cell.y > 19) && @error "Failing to write $tile at index $cell"
-    (cell.x < 1 || cell.x > 19) && @error "Failing to write $tile at index $cell"
     if tile in (Black, White)
         add_piece(board, cell, tile)
     end
