@@ -69,16 +69,16 @@ function AI_turn(board, depth=2)
     start_time = now()
     score, best_cell = ai(board, depth)
     play_turn(board, best_cell)
-    is_win(board) && return true
     set_time(board, Millisecond(now() - start_time))
     display_board(board)
+    is_win(board) && return true
     change_color(board)
     false
 end
 
 
 AI = true
-AI_strength = 4
+AI_strength = 2
 
 function play()
     board = Board()

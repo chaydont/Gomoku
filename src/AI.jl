@@ -38,14 +38,11 @@ end
 
 function heuristic(board::Board)
     score = 0
-    is_win(board) && return 10_000_000
-    change_color(board)
-    is_win(board) && return -10_000_000
-    change_color(board)
-    score += count_all_lines(board) * 150
+    is_win(board) && return 1_000_000
+    score += count_all_lines(board) * 100
     score += (get_captured(board)) ^ 2 * 150
     change_color(board)
-    score -= count_all_lines(board) * 150
+    score -= count_all_lines(board) * 100
     score -= (get_captured(board)) ^ 2 * 150
     change_color(board)
     return Int(floor(score))
@@ -119,7 +116,7 @@ function ai(board::Board, depth::Integer=3, alpha::Integer=-10_000_000, beta::In
         return heuristic(board) * (turn ? 1 : -1), nothing
     end
     best_value = turn ? -10_000_000 : 10_000_000
-    best_cell = Cell(19, 19)
+    best_cell = Cell(10, 10)
     for cell in get_moves(board, turn)
         captured = play_turn(board, cell)
         if is_win(board)
