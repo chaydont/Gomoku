@@ -44,10 +44,14 @@ function Base.setindex!(board::Board, tile::Tile, cell::Cell)
 end
 
 function each_piece(board::Board; enemy=false)
+    need_to_delete = Integer[]
     for (i, cell) in enumerate(get_pieces(board; enemy=enemy))
         if board[cell] != (enemy ? !board.color : board.color)
-            deleteat!(board.pieces[Int(enemy ? !board.color : board.color)], i)
+            push!(need_to_delete, i)
         end
+    end
+    for (i, index) in enumerate(need_to_delete)
+        deleteat!(board.pieces[Int(enemy ? !board.color : board.color)], index - (i - 1))
     end
     get_pieces(board; enemy=enemy)
 end
