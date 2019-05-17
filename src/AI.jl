@@ -120,7 +120,7 @@ function ai(board::Board, depth::Integer=3, alpha::Integer=-10_000_000, beta::In
     for cell in get_moves(board, turn)
         captured = play_turn(board, cell)
         if is_win(board)
-            child_value = heuristic(board) * (turn ? 1 : -1)
+            child_value = 1_000_000 * (turn ? 1 : -1)
         else
             change_color(board)
             child_value = ai(board, depth - 1, alpha, beta, !turn)[1]
