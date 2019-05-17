@@ -38,7 +38,7 @@ end
 
 function heuristic(board::Board)
     score = 0
-    is_win(board) && return 1_000_000
+    is_win(board) && return 10_000_000
     score += count_all_lines(board) * 100
     score += (get_captured(board)) ^ 2 * 150
     change_color(board)
@@ -67,9 +67,7 @@ function heuristic_moves(board::Board, cell::Cell)
             length += 1
             count += 1
         end
-        if length >= 5
-            score += length ^ 5 * 100
-        end
+        score += (length - 1) ^ 5 * 100
     end
     if is_cell_capturable(board, cell)
         score -= (get_captured(board; enemy=true) + 2) ^ 2 * 150
@@ -120,7 +118,7 @@ function ai(board::Board, depth::Integer=3, alpha::Integer=-10_000_000, beta::In
     for cell in get_moves(board, turn)
         captured = play_turn(board, cell)
         if is_win(board)
-            child_value = 1_000_000 * (turn ? 1 : -1)
+            child_value = 1_000_000 * (turn ? 10 : -1)
         else
             change_color(board)
             child_value = ai(board, depth - 1, alpha, beta, !turn)[1]
