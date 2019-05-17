@@ -111,8 +111,8 @@ function revert_turn(board::Board, cell::Cell, captured)
     end
 end
 
-function ai(board::Board, depth::Integer=3, alpha::Integer=-10_000_000, beta::Integer=10_000_000, turn::Bool=true)
-    if depth == 0
+function ai(board::Board, depth::Integer=3, alpha::Integer=-10_000_000, beta::Integer=10_000_000, turn::Bool=true, time=now())
+    if now() - time > Millisecond(490) || depth == 0
         return heuristic(board) * (turn ? 1 : -1), nothing
     end
     best_value = turn ? -10_000_000 : 10_000_000
@@ -123,7 +123,7 @@ function ai(board::Board, depth::Integer=3, alpha::Integer=-10_000_000, beta::In
             child_value = heuristic(board) * (turn ? 1 : -1)
         else
             change_color(board)
-            child_value = ai(board, depth - 1, alpha, beta, !turn)[1]
+            child_value = ai(board, depth - 1, alpha, beta, !turn, time)[1]
             change_color(board)
         end
         revert_turn(board, cell, captured)
